@@ -1,25 +1,106 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Assignment for Week 1"
+author: "Ahmed Shehata"
+date: "March 6, 2016"
+output: md_document
 ---
 
-
-## Loading and preprocessing the data
-
-
-
-## What is mean total number of steps taken per day?
+# 1. Lets Read the file
 
 
 
-## What is the average daily activity pattern?
+```{r}
+ActivDF <- read.csv('activity.csv')
+```
 
 
+## Load the dplyr library
+## and prepare the summary data
 
-## Imputing missing values
+```{r}
+library(dplyr)
 
+data_summary <- ActivDF[!is.na(ActivDF$steps),c("date","steps")] %>% 
+group_by(date) %>%
+summarise_each(funs(sum))
+```
 
+## 2.Histogram of the total number of steps taken each day  
 
-## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+hist(data_summary$steps,col="red",main="Daily Total steps Histogram",xlab="Daily Steps")
+```
+
+## 3.Mean and median number of steps taken each day
+
+```{r}
+data_summary2 <- ActivDF[!is.na(ActivDF$steps),c("date","steps")] %>% 
+group_by(date) %>%
+summarise_each(funs(mean))
+
+print(data_summary2)
+
+data_summary3 <- ActivDF[!is.na(ActivDF$steps),c("date","steps")] %>% 
+group_by(date) %>%
+summarise_each(funs(median))
+
+print(data_summary3)
+```
+
+## 4.Time series plot of the average number of steps taken
+
+``` {r}
+data_summary4 <- ActivDF[!is.na(ActivDF$steps),c("interval","steps")] %>% 
+group_by(interval) %>%
+summarise_each(funs(mean))
+
+plot(data_summary4$interval, data_summary4$steps,xlab="Time Series",ylab="Avrage Number of Steps", type = "l")
+```
+
+## 5.The 5-minute interval that, on average, contains the maximum number of steps
+
+```{r}
+data_summary4[data_summary4$steps == max(data_summary4$steps),]
+```
+
+## 6.Code to describe and show a strategy for imputing missing data
+
+```{r}
+
+## assign average of the number of steps for the missing interval
+ADF <- ActivDF 
+
+for (interval in data_summary4$interval) 
+{
+    ADF[is.na(ADF$steps) & ADF$interval == interval   ,1] <- data_summary4[data_summary4$interval==interval,2]
+}
+```
+
+## 7.Histogram of the total number of steps taken each day after missing values are imputed
+
+```{r}
+data_summary5 <- ADF[!is.na(ADF$steps),c("date","steps")] %>% 
+group_by(date) %>%
+summarise_each(funs(sum))
+
+hist(data_summary5$steps,col="red",main="Daily Total steps Histogram after imputed",xlab="Daily Steps")
+
+```
+
+## 8.Panel plot comparing the average number of steps taken per 5-minute interval across weekdays and weekends
+
+```{r}
+ADF[,4] <- format(as.Date(ADF$date),"%w")
+ADF[ADF$V4 %in% c("1","2","3","4","5"),4] <- "Weekday"
+ADF[ADF$V4 %in% c("0","6"),4] <- "Weekend"
+names(ADF)[4] <- "DayOfWeek"
+
+library (lattice)
+
+xyplot(steps~interval|factor(DayOfWeek),
+       data = ADF,
+       type='l',layout=c(1,2),
+       xlab='Interval',ylab='Number of Steps')
+```
+
+## 9.All of the R code needed to reproduce the results (numbers, plots, etc.) in the report
